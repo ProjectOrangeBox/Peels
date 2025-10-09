@@ -27,106 +27,33 @@ class Filter extends Singleton implements FilterInterface
 
     /**
      * Example:
-     * $filter = Filter::instance();
-     * get from any input method (get, post, put, delete, etc)
-     * first param is input key
-     * second param is rules (string or array)
-     * third param is default value if not present
-     * if no rules and no default, returns null if not present
-     * if rules and no default, returns null if not present or throws error if invalid
-     * if no rules and default, returns default if not present
-     * if rules and default, returns default if not present or throws error if invalid
-     * rules are validation rules, but should be filters (no errors) not validators (errors)
      * this will throw an error if the rules fail
      * so be sure to use rules that do not throw errors
      * for example, use 'castString' instead of 'string' or 'required
      * examples:
      *
-     * $value = $filter->get('name', 'castString', 'defaultName'); // with default
+     * $value = $filter->query('name', 'castString', 'defaultName'); // with default
      * or
-     * $value = $filter->get('name', 'castString'); // no default
+     * $value = $filter->query('name', 'castString'); // no default
      * or
-     * $value = $filter->get('name'); // no rules, no default
+     * $value = $filter->query('name'); // no rules, no default
      * or
-     * $value = $filter->get('name', '', 'defaultName'); // no
+     * $value = $filter->query('name', '', 'defaultName'); // no
      * or
-     * $value = $filter->post('name', 'email', 'me@my'); // default
+     * $value = $filter->request('name', 'email', 'me@my'); // default
      * or
-     * $value = $filter->post('name', 'email'); // no default
+     * $value = $filter->request('name', 'email'); // no default
      * or
-     * $value = $filter->post('name', 'castString');
+     * $value = $filter->request('name', 'castString');
      */
-    public function __call(string $method, array $arguments): mixed
+    public function request(array|string $key, string $rules = '', mixed $default = null): mixed
     {
-        // allow these to pass though to input
-        $inputKey = $arguments[0] ?? null;
-        $default = $arguments[2] ?? null;
-        $rules = $arguments[1] ?? '';
-
-        $method = strtolower($method);
-
-        // copy everything
-        // throws error if unavailable so test with inputService->has('post');
-        // or something like that before calling __call()
-        $inputArray = $this->inputService->$method();
-
-        // if it doesn't exist then use the default
-        if (isset($inputArray[$inputKey])) {
-            // validate a single value against rules
-            $default = $inputArray[$inputKey] = $this->value($inputArray[$inputKey], $rules);
-
-            // put it all back
-            $this->inputService->replace([$method => $inputArray]);
-        }
-
-        return $default;
+        return is_array($key) ? $this->multiple($key, 'request') : $this->single($key, $rules, $default, 'request');
     }
 
-    /**
-     * Batch request filter
-     * $clean = $filter->request([
-     *   'name' => 'readable',
-     *  'email' => 'email',
-     * ]);
-     * or
-     * $clean = $filter->request([
-     *   'name' => ['string','maxlength[20]'],
-     *   'email' => ['email','required'],
-     * ]);
-     * This WILL throw an error on fail
-     * but these should be "filters" which do not return errors
-     * and not validation rules which do return (or throw exceptions) errors
-     *
-     * @param array $inputKeysRules
-     * @param string|null $method
-     * @return array
-     */
-    public function request(array $inputKeysRules, ?string $method = null): array
+    public function query(array|string $key, string $rules = '', mixed $default = null): mixed
     {
-        if (!$method) {
-            // guess
-            $method = $this->inputService->requestMethod(true);
-        } else {
-            $method = strtolower($method);
-        }
-
-        $clean = [];
-
-        // get all input for this request type
-        $inputArray = $this->inputService->$method();
-
-        // for each key and rule...
-        foreach ($inputKeysRules as $inputKeys => $rules) {
-            // let's make sure we have something to filter
-            $value = $inputArray[$inputKeys] ?? '';
-
-            $clean[$inputKeys] = $inputArray[$inputKeys] = $this->value($value, $rules);
-        }
-
-        // put it all back
-        $this->inputService->replace([$method => $inputArray]);
-
-        return $clean;
+        return is_array($key) ? $this->multiple($key, 'request') : $this->single($key, $rules, $default, 'query');
     }
 
     /**
@@ -162,5 +89,22 @@ class Filter extends Singleton implements FilterInterface
         // throws exception on fail
         // returns value on success
         return $this->validateService->throwExceptionOnFailure(true)->input($value, $rules)->value();
+    }
+
+    protected function single(string $key, string $rules, mixed $default, string $method): mixed
+    {
+        return $this->value($this->inputService->$method($key, $default), $rules);
+    }
+
+    protected function multiple(array $mutiple, string $method): array
+    {
+        $filtered = [];
+
+        // for each key and rule...
+        foreach ($mutiple as $key => $rules) {
+            $filtered[$key] = $this->single($key, $rules, '', $method);
+        }
+
+        return $filtered;
     }
 }

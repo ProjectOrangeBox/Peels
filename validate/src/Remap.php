@@ -29,20 +29,14 @@ class Remap extends Singleton implements RemapInterface
     /**
      * remap input/request - array keys
      */
-    public function request(string $method, array|string $mapping): array
+    public function request(array|string $mapping): array
     {
-        $method = strtolower($method);
+        return $this->array($this->inputService->request(), $mapping);
+    }
 
-        // get the entire matching input type array
-        // throws error if unavailable
-        // remap the array
-        $inputArray = $this->array($this->inputService->$method(), $mapping);
-
-        // put the new mapping back in the input service
-        $this->inputService->replace([$method => $inputArray]);
-
-        // also send back remapped
-        return $inputArray;
+    public function query(array|string $mapping): array
+    {
+        return $this->array($this->inputService->query(), $mapping);
     }
 
     /**

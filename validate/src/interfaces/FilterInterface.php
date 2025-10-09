@@ -7,25 +7,14 @@ namespace peels\validate\interfaces;
 interface FilterInterface
 {
     /**
-     * this creates a input key passthru
-     *
-     * $value = $filterService->post('name','visible|length[32]');
-     *
-     * @param string $name
-     * @param array $arguments
-     * @return mixed
-     */
-    public function __call(string $name, array $arguments): mixed;
-
-    /**
-     * filter the entire input array
+     * filter single input variable
      *
      * @param array $inputKeysRules
      * @param string|null $method
      * @return array
      */
-    public function request(array $inputKeysRules, string $method = null): array;
-
+    public function request(array|string $key, string $rules = '', mixed $default = null): mixed;
+    public function query(array|string $key, string $rules = '', mixed $default = null): mixed;
     /**
      * $value = $filterService->value('abc123','visible|length[32]');
      * $value = $filterService->value('abc123',['visible','length[32]']);

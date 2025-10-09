@@ -13,7 +13,7 @@ interface ValidateInterface
     public function addRules(array $rules): self;
 
     public function setCurrentInput(mixed $input): self;
-    public function input(mixed $input, array|string $rules, string $human = null): self;
+    public function input(mixed $input, array|string $rules, ?string $human = null): self;
 
     public function stopProcessing(): self;
     public function throwExceptionOnFailure(): self;

@@ -42,7 +42,7 @@ return [
         'toUpper' => \peels\validate\rules\Filters::class . '::upper',
         'toVisible' => \peels\validate\rules\Filters::class . '::visible',
 
-        // --Rules
+        // --Validate
         'allowEmpty' => \peels\validate\rules\Rules::class . '::allowEmpty',
         'convertDate' => \peels\validate\rules\Rules::class . '::convertDate',
         'copyField' => \peels\validate\rules\Rules::class . '::copyField',
