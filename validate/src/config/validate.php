@@ -41,6 +41,7 @@ return [
         'toSlug' => \peels\validate\rules\Filters::class . '::slug',
         'toUpper' => \peels\validate\rules\Filters::class . '::upper',
         'toVisible' => \peels\validate\rules\Filters::class . '::visible',
+        'toEmail' => \peels\validate\rules\Filters::class . '::email',
 
         // --Validate
         'allowEmpty' => \peels\validate\rules\Rules::class . '::allowEmpty',
