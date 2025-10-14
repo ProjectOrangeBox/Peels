@@ -6,6 +6,6 @@ namespace peels\stash;
 
 interface StashInterface
 {
-    public function push(): self;
-    public function apply(): bool;
+    public function push(?string $name = null): self;
+    public function apply(?string $name = null): false|array;
 }
