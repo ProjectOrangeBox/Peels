@@ -65,7 +65,7 @@ class Filters extends RuleAbstract
 
         $length = $this->option ?? 0;
 
-        $this->input = substr($this->input, 0, $length);
+        $this->input = substr($this->input, 0, (int)$length);
     }
 
     public function number(): void
@@ -165,5 +165,12 @@ class Filters extends RuleAbstract
 
         // throws an exception on fail
         $this->input = password_hash($this->input, PASSWORD_DEFAULT);
+    }
+
+    public function email(): void
+    {
+        $this->toString();
+
+        $this->input = filter_var($this->input, FILTER_SANITIZE_EMAIL);
     }
 }

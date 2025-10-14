@@ -5,5 +5,5 @@
  */
 function fig_e(string $name): string
 {
-    return fig::escape($name);
+    return fig::escape($name, false);
 }
