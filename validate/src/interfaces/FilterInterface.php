@@ -6,15 +6,9 @@ namespace peels\validate\interfaces;
 
 interface FilterInterface
 {
-    /**
-     * filter single input variable
-     *
-     * @param array $inputKeysRules
-     * @param string|null $method
-     * @return array
-     */
-    public function request(array|string $key, string $rules = '', mixed $default = null): mixed;
-    public function query(array|string $key, string $rules = '', mixed $default = null): mixed;
+    public function __set(string $setName, array $value): void;
+    public function __call($setName, $arguments): mixed;
+
     /**
      * $value = $filterService->value('abc123','visible|length[32]');
      * $value = $filterService->value('abc123',['visible','length[32]']);
@@ -24,4 +18,6 @@ interface FilterInterface
      * @return mixed
      */
     public function value(mixed $value, string|array $rules): mixed;
+
+    public function values(array $values, array $keysRules): array;
 }

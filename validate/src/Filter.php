@@ -17,43 +17,46 @@ use peels\validate\interfaces\ValidateInterface;
 class Filter extends Singleton implements FilterInterface
 {
     protected ValidateInterface $validateService;
-    protected InputInterface $inputService;
+
+    protected array $dataSets = [];
 
     protected function __construct(ValidateInterface $validate, InputInterface $input)
     {
         $this->validateService = $validate;
-        $this->inputService = $input;
+
+        $this->request = $input->request();
+        $this->query = $input->query();
     }
 
     /**
-     * Example:
-     * this will throw an error if the rules fail
-     * so be sure to use rules that do not throw errors
-     * for example, use 'castString' instead of 'string' or 'required
-     * examples:
+     * magic methods to allow setting of arrays of data to be filtered
+     * then calling methods to filter specific keys from those arrays
+     * $filter->request = $_REQUEST;
      *
-     * $value = $filter->query('name', 'castString', 'defaultName'); // with default
-     * or
-     * $value = $filter->query('name', 'castString'); // no default
-     * or
-     * $value = $filter->query('name'); // no rules, no default
-     * or
-     * $value = $filter->query('name', '', 'defaultName'); // no
-     * or
-     * $value = $filter->request('name', 'email', 'me@my'); // default
-     * or
-     * $value = $filter->request('name', 'email'); // no default
-     * or
-     * $value = $filter->request('name', 'castString');
+     * @param string $setName
+     * @param array $value
+     * @return void
      */
-    public function request(array|string $key, string $rules = '', mixed $default = null): mixed
+    public function __set(string $setName, array $value): void
     {
-        return is_array($key) ? $this->multiple($key, 'request') : $this->single($key, $rules, $default, 'request');
+        $this->dataSets[$setName] = $value;
     }
 
-    public function query(array|string $key, string $rules = '', mixed $default = null): mixed
+    /**
+     * magic method to allow calling of filtering on previously set arrays
+     * $name = $filter->request('name','string|length[32]','defaultName');
+     *
+     * @param string $setName
+     * @param array $arguments
+     * @return mixed
+     */
+    public function __call($setName, $arguments): mixed
     {
-        return is_array($key) ? $this->multiple($key, 'request') : $this->single($key, $rules, $default, 'query');
+        $key = $arguments[0] ?? '';
+        $rules = $arguments[1] ?? '';
+        $default = $arguments[2] ?? null;
+
+        return isset($this->dataSets[$setName], $this->dataSets[$setName][$key]) ? $this->value($this->dataSets[$setName][$key], $rules) : $default;
     }
 
     /**
@@ -68,6 +71,24 @@ class Filter extends Singleton implements FilterInterface
     public function value(mixed $value, string|array $rules): mixed
     {
         return $this->runRule($value, $rules);
+    }
+
+    /**
+     * filter multiple values at once
+     *
+     * @param array $values
+     * @param array $keysRules
+     * @return array
+     */
+    public function values(array $values, array $keysRules): array
+    {
+        $return = [];
+
+        foreach ($keysRules as $key => $rules) {
+            $return[$key] = isset($values[$key]) ? $this->value($values[$key], $rules) : null;
+        }
+
+        return $return;
     }
 
     /**
@@ -89,22 +110,5 @@ class Filter extends Singleton implements FilterInterface
         // throws exception on fail
         // returns value on success
         return $this->validateService->throwExceptionOnFailure(true)->input($value, $rules)->value();
-    }
-
-    protected function single(string $key, string $rules, mixed $default, string $method): mixed
-    {
-        return $this->value($this->inputService->$method($key, $default), $rules);
-    }
-
-    protected function multiple(array $mutiple, string $method): array
-    {
-        $filtered = [];
-
-        // for each key and rule...
-        foreach ($mutiple as $key => $rules) {
-            $filtered[$key] = $this->single($key, $rules, '', $method);
-        }
-
-        return $filtered;
     }
 }
