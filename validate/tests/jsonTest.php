@@ -7,7 +7,7 @@ use peels\validate\Validate;
 use peels\validate\ValidJson;
 use peels\validate\exceptions\ValidationFailed;
 
-final class jsonTest extends \unitTestHelper
+final class JsonTest extends \unitTestHelper
 {
     private $validJson;
 
@@ -41,10 +41,13 @@ final class jsonTest extends \unitTestHelper
         $this->validJson = ValidJson::getInstance(Validate::getInstance([]), Input::getInstance([]));
     }
 
-    public function testValidateJson(): void
+    public function testIsTrue(): void
     {
         $this->assertTrue($this->validJson->value($this->jsonText, 'isString(people.*.name)'));
+    }
 
+    public function testIsException(): void
+    {
         $this->expectException(ValidationFailed::class);
 
         $this->assertNull($this->validJson->value($this->jsonText, 'isBool(people.*.name)'));
@@ -52,10 +55,6 @@ final class jsonTest extends \unitTestHelper
 
     public function testValidateJsonCounts(): void
     {
-        $this->assertTrue($this->validJson->value($this->jsonText, [
-            'isCount(people.*),3',
-            'isCountLessThan(people.*),6',
-            'isCountGreaterThan(people.*),1'
-        ]));
+        $this->assertTrue($this->validJson->value($this->jsonText, ['isCount(people.*)[3]', 'isCountLessThan(people.*)[6]', 'isCountGreaterThan(people.*)[1]']));
     }
 }

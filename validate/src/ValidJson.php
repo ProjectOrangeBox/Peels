@@ -19,45 +19,6 @@ use peels\validate\interfaces\ValidateInterface;
  */
 class ValidJson extends Filter
 {
-    // uses the Validate service to perform validation
-    protected ValidateInterface $validateService;
-    // uses the Input service to fetch input data if needed
-    protected InputInterface $inputService;
-
-    /**
-     * Constructor
-     *
-     * @param ValidateInterface $validate
-     * @param InputInterface $input
-     * @return void
-     */
-    protected function __construct(ValidateInterface $validate, InputInterface $input)
-    {
-        $this->validateService = $validate;
-        $this->inputService = $input;
-    }
-
-    /**
-     * Validate a value against a set of rules.
-     *
-     * @param mixed $value
-     * @param string|array $rules
-     * @return mixed
-     * @throws RuleFailed
-     */
-    public function value(mixed $value, string|array $rules): mixed
-    {
-        if (is_array($rules)) {
-            foreach ($rules as $rule) {
-                $this->runRule($value, $rule);
-            }
-        } else {
-            $this->runRule($value, $rules);
-        }
-
-        return true;
-    }
-
     /**
      * validateJson[isString(person.name.first)]
      * validateJson[isArray(person.children)]
@@ -82,34 +43,41 @@ class ValidJson extends Filter
             throw new RuleFailed('%s is not a valid JSON');
         }
 
-        // parse out function name and dot notation
-        preg_match('/(?<rule>[^\(]+)\((?<dot>[^\)]+)\),*(?<options>.*)/i', $rule, $matches, PREG_OFFSET_CAPTURE, 0);
+        $rulesAsArray = is_array($rule) ? $rule : explode('|', $rule);
 
-        $dotNotation = $matches['dot'][0];
+        foreach ($rulesAsArray as $rule) {
+            // parse out function name and dot notation
+            $results = preg_match('/(?<rule>[^\(]+)\((?<dot>[^\)]+)\)(?<options>.*)/i', $rule, $matches, PREG_OFFSET_CAPTURE, 0);
 
-        $rule = $matches['rule'][0] . '[' . $matches['options'][0] . ']';
+            if ($results === 0 || $results === false) {
+                throw new RuleFailed($rule);
+            }
 
-        $value = (new WildNotation($json))->get($dotNotation);
+            $rule = $matches['rule'][0] . $matches['options'][0];
+            $dotNotation = $matches['dot'][0];
 
-        /**
-         * returns an array
-         * isArray(people.*)
-         *
-         * foreach
-         * isBool(people.*.male)
-         */
-        if (is_array($value) && substr($dotNotation, -1) != '*') {
-            foreach ($value as $v) {
+            $value = (new WildNotation($json))->get($dotNotation);
+
+            /**
+             * returns an array
+             * isArray(people.*)
+             *
+             * foreach
+             * isBool(people.*.male)
+             */
+            if (is_array($value) && substr($dotNotation, -1) != '*') {
+                foreach ($value as $v) {
+                    // throws exception on fail
+                    // returns value on success
+                    $this->validateService->throwExceptionOnFailure(true)->value($v, $rule);
+                }
+            } else {
                 // throws exception on fail
                 // returns value on success
-                $this->validateService->throwExceptionOnFailure(true)->input($v, $rule);
+                $this->validateService->throwExceptionOnFailure(true)->value($value, $rule);
             }
-        } else {
-            // throws exception on fail
-            // returns value on success
-            $this->validateService->throwExceptionOnFailure(true)->input($value, $rule);
         }
 
-        return $json;
+        return true;
     }
 }

@@ -70,7 +70,7 @@ class Rules extends RuleAbstract
     {
         $this->optionIsRequired();
 
-        $currentValues = $this->parent->values();
+        $currentValues = $this->parent->getValues();
 
         if (!isset($currentValues[$this->option])) {
             throw new RuleFailed('Could not find the field ' . $this->option . '.');
@@ -499,7 +499,7 @@ class Rules extends RuleAbstract
 
         list($from, $to) = explode($this->defaultOptionSeparator, $this->options, 2);
 
-        $input = $this->parent->values();
+        $input = $this->parent->getValues();
 
         if (!$this->notation->isset($input, $from)) {
             throw new RuleFailed('Can not location the field ' . $from . ' to copy.');
@@ -507,7 +507,7 @@ class Rules extends RuleAbstract
 
         $this->notation->set($input, $to, $this->notation->get($input, $from));
 
-        $this->parent->setCurrentInput($input);
+        $this->parent->values($input);
     }
 
     public function moveField(): void
@@ -516,7 +516,7 @@ class Rules extends RuleAbstract
 
         list($from, $to) = explode($this->defaultOptionSeparator, $this->options, 2);
 
-        $input = $this->parent->values();
+        $input = $this->parent->getValues();
 
         if (!$this->notation->isset($input, $from)) {
             throw new RuleFailed('Can not location the field ' . $from . ' to move.');
@@ -526,14 +526,14 @@ class Rules extends RuleAbstract
 
         $this->notation->unset($input, $from);
 
-        $this->parent->setCurrentInput($input);
+        $this->parent->values($input);
     }
 
     public function deleteField(): void
     {
         $this->optionIsRequired();
 
-        $input = $this->parent->values();
+        $input = $this->parent->getValues();
 
         if (!$this->notation->isset($input, $this->option)) {
             throw new RuleFailed('Can not location the field ' . $this->option . ' to delete.');
@@ -541,14 +541,14 @@ class Rules extends RuleAbstract
 
         $this->notation->unset($input, $this->option);
 
-        $this->parent->setCurrentInput($input);
+        $this->parent->values($input);
     }
 
     public function matches(): void
     {
         $this->optionIsRequired();
 
-        $currentValues = $this->parent->values();
+        $currentValues = $this->parent->getValues();
 
         if (!isset($currentValues[$this->option])) {
             throw new RuleFailed('Could not find the field ' . $this->option . '.');
@@ -658,7 +658,7 @@ class Rules extends RuleAbstract
         }
 
         // this needs to be a array or we have no idea what the current record primary id might be
-        $currentValues = $this->parent->values();
+        $currentValues = $this->parent->getValues();
 
         if (!is_array($currentValues)) {
             throw new RuleFailed('we can\'t determine the primary id when using the unique rule.');

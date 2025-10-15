@@ -17,15 +17,15 @@ final class anotherTest extends \unitTestHelper
 
     public function testOne(): void
     {
-        $this->assertEquals(123, $this->validate->input('123', 'toInteger|castInteger|isGreaterThan[100]|isLessThan[999]|isInteger')->value());
+        $this->assertEquals(123, $this->validate->value('123', 'toInteger|castInteger|isGreaterThan[100]|isLessThan[999]|isInteger'));
     }
 
     public function testTwo(): void
     {
         $password = 'DefaultPassword#1';
 
-        $hash = $this->validate->input($password, 'toPasswordHash')->value();
+        $hash = $this->validate->value($password, 'toPasswordHash');
 
-        $this->assertEquals($password, $this->validate->input($password, 'passwordVerify[' . $hash . ']')->value());
+        $this->assertEquals($password, $this->validate->value($password, 'passwordVerify[' . $hash . ']'));
     }
 }

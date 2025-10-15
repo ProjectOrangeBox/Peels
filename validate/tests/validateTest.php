@@ -21,19 +21,19 @@ final class validateTest extends \unitTestHelper
     {
         $this->expectException(ValidationFailed::class);
 
-        $this->validate->input('123', 'ConvertDate|Length[6]');
+        $this->validate->value('123', 'ConvertDate|Length[6]');
     }
 
     public function testValidateConvertDate(): void
     {
-        $this->assertEquals('1942-12-18 23:42:00', $this->validate->input('December 18th 1942 11:42pm', 'ConvertDate')->value());
+        $this->assertEquals('1942-12-18 23:42:00', $this->validate->value('December 18th 1942 11:42pm', 'ConvertDate'));
     }
 
     public function testValidateNotInteger(): void
     {
         $this->expectException(ValidationFailed::class);
 
-        $this->validate->input('abc', 'isInteger');
+        $this->validate->value('abc', 'isInteger');
     }
 
     public function testValidateSet(): void
@@ -54,7 +54,7 @@ final class validateTest extends \unitTestHelper
             'name' => 'Jane',
             'age' => 27,
             'food' => 'pizza',
-        ], $this->validate->input($values, $rules)->values());
+        ], $this->validate->values($values)->for($rules)->run());
     }
 
     public function testValidateSetDotNotation(): void
@@ -84,7 +84,7 @@ final class validateTest extends \unitTestHelper
             ],
             'age' => 27,
             'food' => 'pizza',
-        ], $this->validate->input($values, $rules)->values());
+        ], $this->validate->values($values)->for($rules)->run());
     }
 
     public function testValidateSetError(): void
@@ -101,7 +101,7 @@ final class validateTest extends \unitTestHelper
             'food' => 'isString|isOneOf[pizza,burger,hot dog,ice cream]',
         ];
 
-        $this->validate->throwExceptionOnFailure(false)->input($values, $rules);
+        $this->validate->throwExceptionOnFailure(false)->values($values)->for($rules)->run();
 
         $this->assertTrue($this->validate->hasErrors());
         $this->assertEquals(['age is not greater than 18.', 'food is not one of pizza, burger, hot dog, ice cream.'], $this->validate->errors());

@@ -4,6 +4,27 @@ declare(strict_types=1);
 
 namespace peels\validate\interfaces;
 
+/**
+ * $data = [
+ *  'name'=>'Johnny Appleseed',
+ *  'age'=>'54',
+ * ];
+ * $validData = $validate
+ *  ->values($data)
+ *  ->for('name',['isString|notEmpty','Name'])
+ *  ->for('age',['isInt|between[18,110]|notEmpty','Age'])
+ *  ->run();
+ * 
+ * $validData = $validate
+ *  ->values($data)
+ *  ->for(['name'=>['isString|notEmpty','Name'],'age'=>['isInt|between[18,110]|notEmpty','Age'])
+ *  ->run();
+ *
+ * $single = 'Johnny';
+ * $validData = $validate->value($single,'isString|notEmpty','Name');
+ *
+ * @package peels\validate\interfaces
+ */
 interface ValidateInterface
 {
     public function reset(): self;
@@ -12,8 +33,12 @@ interface ValidateInterface
     public function addRule(string $name, string $class): self;
     public function addRules(array $rules): self;
 
-    public function setCurrentInput(mixed $input): self;
-    public function input(mixed $input, array|string $rules, ?string $human = null): self;
+    public function value(mixed $input, string $rules, ?string $human = null): mixed;
+    public function getValues(): array;
+
+    public function values(array $input): self;
+    public function for(string $key, string $rule, string $human): self;
+    public function run(): mixed;
 
     public function stopProcessing(): self;
     public function throwExceptionOnFailure(): self;
@@ -28,7 +53,4 @@ interface ValidateInterface
     public function error(): string;
     public function errors(): array;
     public function hasNoErrors(): bool;
-
-    public function value(): mixed;
-    public function values(): mixed;
 }

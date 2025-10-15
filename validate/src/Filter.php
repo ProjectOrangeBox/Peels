@@ -109,6 +109,6 @@ class Filter extends Singleton implements FilterInterface
 
         // throws exception on fail
         // returns value on success
-        return $this->validateService->throwExceptionOnFailure(true)->input($value, $rules)->value();
+        return $this->validateService->throwExceptionOnFailure(true)->value($value, $rules);
     }
 }

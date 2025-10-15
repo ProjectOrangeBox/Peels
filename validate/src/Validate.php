@@ -26,7 +26,7 @@ class Validate extends Factory implements ValidateInterface
     protected string $currentOptions = '';
     protected string $currentErrorMsg = '';
 
-    protected mixed $currentInput = null;
+    protected array $values = [];
 
     // flag for a rule to stop processing of further rules for a given field
     protected bool $stopProcessing = false;
@@ -46,7 +46,9 @@ class Validate extends Factory implements ValidateInterface
     protected string $defaultOptionDelimiter = ',';
 
     // array of rule "names" to the classes and methods they call
-    protected array $rules = [];
+    protected array $knownRules = [];
+
+    protected array $ruleSet = [];
 
     // local instance of notation
     protected Notation $notation;
@@ -118,7 +120,7 @@ class Validate extends Factory implements ValidateInterface
 
         // the current value being worked on.
         // this is passed into rules by reference
-        $this->currentInput = null;
+        $this->values = [];
 
         // the current rules error msg, rule, and any option(s)
         $this->currentErrorMsg = '';
@@ -141,7 +143,7 @@ class Validate extends Factory implements ValidateInterface
     public function addRule(string $name, string $classMethod): self
     {
         // normalize the name to lowercase
-        $this->rules[strtolower($name)] = $classMethod;
+        $this->knownRules[strtolower($name)] = $classMethod;
 
         return $this;
     }
@@ -162,39 +164,92 @@ class Validate extends Factory implements ValidateInterface
         return $this;
     }
 
-    /**
-     * Single request filter
-     * $clean = $filter->request('name','readable');
-     * $clean = $filter->request('email',['email','required']);
-     * This WILL throw an error on fail
-     * but these should be "filters" which do not return errors
-     * and not validation rules which do return (or throw exceptions) errors
-     *
-     * @param mixed $input
-     * @param array|string $rules
-     * @param string|null $human
-     * @return Validate
-     * @throws ValidationFailed
-     */
-    public function input(mixed $input, array|string $rules, ?string $human = null): self
+    public function value(mixed $input, string $rules, ?string $human = null): mixed
     {
-        // reset class
         $this->reset();
 
-        if (is_string($rules)) {
-            $rules = explode($this->ruleDelimiter, $rules);
-        }
+        $inputAry = $this->values(['value' => $input])->for('value', $rules, $human)->run();
 
-        // save raw input and create a variable so we can pass by reference
-        $this->currentInput = $input;
+        return $inputAry['value'];
+    }
 
-        if (is_array($this->currentInput) || is_object($this->currentInput)) {
-            $this->processArrayOrObject($rules);
+    /**
+     * Get all of the current input values (array or object)
+     *
+     * @param mixed|null $input
+     * @return mixed
+     */
+    public function values(array $input): self
+    {
+        $this->reset();
+
+        $this->values = $input;
+
+        return $this;
+    }
+
+    public function getValues(): array
+    {
+        return $this->values;
+    }
+
+    public function for(string|array $name, ?string $rules = null, ?string $human = null): self
+    {
+        if (is_array($name)) {
+            foreach ($name as $n => $rh) {
+                if (is_array($rh)) {
+                    $rules = $rh[0];
+                    $human = $rh[1] ?? $this->makeHumanLookNice(null, $n);
+                } else {
+                    $rules = $rh;
+                    $human = $this->makeHumanLookNice(null, $n);
+                }
+
+                $this->ruleSet[$n] = [explode($this->ruleDelimiter, $rules), $human];
+            }
         } else {
-            $this->processSingleValue($rules, $human);
+            $this->ruleSet[$name] = [explode($this->ruleDelimiter, $rules), $this->makeHumanLookNice($human, $name)];
         }
 
         return $this;
+    }
+
+    public function run(): mixed
+    {
+        foreach ($this->ruleSet as $key => $rules) {
+            $this->currentKey = (string)$key;
+
+            if (is_array($rules)) {
+                // get human first before rules is overwritten
+                $human = $rules[1] ?? '';
+                $rules = $rules[0] ?? '';
+            } else {
+                $human = $this->makeHumanLookNice(null, (string)$key);
+            }
+
+            if (!is_array($rules)) {
+                $rules = explode($this->ruleDelimiter, $rules);
+            }
+
+            if ($this->notationDelimiter == '') {
+                // no dot notation delimiter in effect
+                $value = $this->values[$key] ?? '';
+
+                $this->values[$key] = $this->validateSingleValueMultipleRules($value, $rules, $human);
+            } else {
+                $value = $this->notation->get($this->values, $key);
+
+                $value = $this->validateSingleValueMultipleRules($value, $rules, $human);
+
+                $this->notation->set($this->values, $key, $value);
+            }
+
+            $this->currentKey = '';
+        }
+
+        $this->throwException();
+
+        return $this->values;
     }
 
     /**
@@ -219,39 +274,6 @@ class Validate extends Factory implements ValidateInterface
     }
 
     /**
-     * Get the current input value
-     *
-     * @return mixed
-     */
-    public function value(): mixed
-    {
-        return $this->currentInput;
-    }
-
-    /**
-     * Get all of the current input values (array or object)
-     *
-     * @return mixed
-     */
-    public function values(): mixed
-    {
-        return $this->currentInput;
-    }
-
-    /**
-     * Set the current input value
-     *
-     * @param mixed $input
-     * @return Validate
-     */
-    public function setCurrentInput(mixed $input): self
-    {
-        $this->currentInput = $input;
-
-        return $this;
-    }
-
-    /**
      * Stop processing any further rules for the current input value
      *
      * @return Validate
@@ -264,21 +286,6 @@ class Validate extends Factory implements ValidateInterface
     }
 
     /**
-     * Request filter
-     * $clean = $filter->request([
-     *   'name' => 'readable',
-     *  'email' => 'email',
-     * ]);
-     * or
-     * $clean = $filter->request([
-     *  'name' => ['string','maxlength[20]'],
-     *  'age' => ['int','min[0]'],
-     *  'email' => ['email','required'],
-     * ]);
-     * This WILL throw an error on fail
-     * but these should be "filters" which do not return errors
-     * and not validation rules which do return (or throw exceptions) errors
-     *
      * @param bool $bool
      * @return Validate
      */
@@ -346,6 +353,32 @@ class Validate extends Factory implements ValidateInterface
         return $error;
     }
 
+
+    /**
+     * Send in NULL if you want to turn "off" dot notation "drill down" into your input
+     *
+     * Send in something else if for some reason you would like to
+     * use another delimiter to indicate how to drill down to the next level
+     */
+    public function changeNotationDelimiter(string $delimiter): self
+    {
+        $this->notationDelimiter = $delimiter;
+
+        $this->notation->changeDelimiter($delimiter);
+
+        return $this;
+    }
+
+    /**
+     * Disable dot notation "drill down" into your input
+     *
+     * @return Validate
+     */
+    public function disableNotation(): self
+    {
+        return $this->changeNotationDelimiter('');
+    }
+
     /**
      * Protected
      */
@@ -382,67 +415,6 @@ class Validate extends Factory implements ValidateInterface
         return $this;
     }
 
-   /**
-    * Process a single value with 1 or more rules
-
-    * @param array $rules
-    * @param null|string $human
-    * @return Validate
-    * @throws ValidationFailed
-    */
-    protected function processSingleValue(array $rules, ?string $human = null): self
-    {
-        // validate a single value against 1 or more rules
-        // arg1 passed by reference
-        $this->currentInput = $this->validateSingleValueMultipleRules($this->currentInput, $rules, $this->makeHumanLookNice($human, 'Input'));
-
-        // throw an exception on error if necessary
-        return $this->throwException();
-    }
-
-    /**
-     * Process an array or object with multiple keys and rules
-     *
-     * @param array $ruleSet
-     * @return Validate
-     * @throws ValidationFailed
-     */
-    protected function processArrayOrObject(array $ruleSet): self
-    {
-        foreach ($ruleSet as $key => $rules) {
-            $this->currentKey = (string)$key;
-
-            if (is_array($rules)) {
-                // get human first before rules is overwritten
-                $human = $rules[1] ?? '';
-                $rules = $rules[0] ?? '';
-            } else {
-                $human = $this->makeHumanLookNice(null, (string)$key);
-            }
-
-            if (!is_array($rules)) {
-                $rules = explode($this->ruleDelimiter, $rules);
-            }
-
-            if ($this->notationDelimiter == '') {
-                // no dot notation delimiter in effect
-                $value = $this->currentInput[$key] ?? '';
-
-                $this->currentInput[$key] = $this->validateSingleValueMultipleRules($value, $rules, $human);
-            } else {
-                $value = $this->notation->get($this->currentInput, $key);
-
-                $value = $this->validateSingleValueMultipleRules($value, $rules, $human);
-
-                $this->notation->set($this->currentInput, $key, $value);
-            }
-
-            $this->currentKey = '';
-        }
-
-        return $this->throwException();
-    }
-
     /**
      * Validate a single value against multiple rules
      *
@@ -451,7 +423,7 @@ class Validate extends Factory implements ValidateInterface
      * @param string|null $human
      * @return mixed
      */
-    protected function validateSingleValueMultipleRules(mixed $input, array $rules, string $human = null): mixed
+    protected function validateSingleValueMultipleRules(mixed $input, array $rules, ?string $human = null): mixed
     {
         // continue processing rules
         $this->stopProcessing = false;
@@ -498,60 +470,6 @@ class Validate extends Factory implements ValidateInterface
         return $input;
     }
 
-   /**
-    * Call the rule class and method
-
-    * @param mixed &$value
-    * @param string $rule
-    * @return void
-    */
-    protected function callRule(mixed &$value, string $rule): void
-    {
-        // default error
-        $this->currentErrorMsg = $this->defaultErrorMsg;
-
-        if (!empty($rule)) {
-            $options = '';
-
-            $regex = ';(?<rule>.*)' . preg_quote($this->optionLeftDelimiter) . '(?<options>.*)' . preg_quote($this->optionRightDelimiter) . ';';
-
-            if (preg_match($regex, $rule, $matches, 0, 0)) {
-                $rule = $matches['rule'];
-                $options = $matches['options'];
-            }
-
-            $this->currentRule = $rule;
-            $this->currentOptions = $this->makeOptionsLookNice($options);
-
-            // normalize rule name
-            $rule = strtolower($rule);
-
-            if (isset($this->rules[$rule])) {
-                list($class, $method) = explode('::', $this->rules[$rule], 2);
-            } else {
-                throw new RuleNotFound('Unknown Rule or Filter "' . $rule . '".');
-            }
-
-            // make instance - this should autoload
-            if (class_exists($class, true)) {
-                $instance = new $class($value, $options, $this->config, $this);
-
-                if (!$instance instanceof RuleAbstract) {
-                    throw new InvalidValue('"' . $class . '" is not an instance of RuleAbstract.');
-                }
-            } else {
-                throw new RuleNotFound('Unknown Class "' . $class . '".');
-            }
-
-            if (method_exists($instance, $method)) {
-                // throws an error on fail this is captured in validateSingleValueSingleRule()
-                $instance->$method();
-            } else {
-                throw new RuleNotFound('Unknown Method "' . $method . '" on Class "' . $class . '".');
-            }
-        }
-    }
-
     /**
      * Make a human readable field name if one isn't given
      *
@@ -582,8 +500,9 @@ class Validate extends Factory implements ValidateInterface
         if (!empty($option)) {
             if (strpos($option, $delimiter) !== false) {
                 $nice = str_replace($delimiter, $delimiter . ' ', $option);
+                $pos = strrpos($this->currentOptions, $delimiter . ' ');
 
-                if (($pos = strrpos($this->currentOptions, $delimiter . ' ')) !== false) {
+                if ($pos !== false) {
                     $nice = substr_replace($this->currentOptions, ' or ', $pos, 2);
                 }
             } else {
@@ -595,27 +514,56 @@ class Validate extends Factory implements ValidateInterface
     }
 
     /**
-     * Send in NULL if you want to turn "off" dot notation "drill down" into your input
-     *
-     * Send in something else if for some reason you would like to
-     * use another delimiter to indicate how to drill down to the next level
+     * Call the rule class and method
+
+     * @param mixed &$value
+     * @param string $rule
+     * @return void
      */
-    public function changeNotationDelimiter(string $delimiter): self
+    protected function callRule(mixed &$value, string $rule): void
     {
-        $this->notationDelimiter = $delimiter;
+        // default error
+        $this->currentErrorMsg = $this->defaultErrorMsg;
 
-        $this->notation->changeDelimiter($delimiter);
+        if (!empty($rule)) {
+            $options = '';
 
-        return $this;
-    }
+            $regex = ';(?<rule>.*)' . preg_quote($this->optionLeftDelimiter) . '(?<options>.*)' . preg_quote($this->optionRightDelimiter) . ';';
 
-    /**
-     * Disable dot notation "drill down" into your input
-     *
-     * @return Validate
-     */
-    public function disableNotation(): self
-    {
-        return $this->changeNotationDelimiter('');
+            if (preg_match($regex, $rule, $matches, 0, 0)) {
+                $rule = $matches['rule'];
+                $options = $matches['options'];
+            }
+
+            $this->currentRule = $rule;
+            $this->currentOptions = $this->makeOptionsLookNice($options);
+
+            // normalize rule name
+            $rule = strtolower($rule);
+
+            if (isset($this->knownRules[$rule])) {
+                list($class, $method) = explode('::', $this->knownRules[$rule], 2);
+            } else {
+                throw new RuleNotFound('Unknown Rule or Filter "' . $rule . '".');
+            }
+
+            // make instance - this should autoload
+            if (class_exists($class, true)) {
+                $instance = new $class($value, $options, $this->config, $this);
+
+                if (!$instance instanceof RuleAbstract) {
+                    throw new InvalidValue('"' . $class . '" is not an instance of RuleAbstract.');
+                }
+            } else {
+                throw new RuleNotFound('Unknown Class "' . $class . '".');
+            }
+
+            if (method_exists($instance, $method)) {
+                // throws an error on fail this is captured in validateSingleValueSingleRule()
+                $instance->$method();
+            } else {
+                throw new RuleNotFound('Unknown Method "' . $method . '" on Class "' . $class . '".');
+            }
+        }
     }
 }
