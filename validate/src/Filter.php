@@ -39,7 +39,14 @@ class Filter extends Singleton implements FilterInterface
      */
     public function __set(string $setName, array $value): void
     {
+        $this->set($setName, $value);
+    }
+
+    public function set(string $setName, array $value): self
+    {
         $this->dataSets[$setName] = $value;
+
+        return $this;
     }
 
     /**

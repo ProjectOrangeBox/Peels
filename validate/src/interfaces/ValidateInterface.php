@@ -34,7 +34,6 @@ interface ValidateInterface
     public function addRules(array $rules): self;
 
     public function value(mixed $input, string $rules, ?string $human = null): mixed;
-    public function getValues(): array;
 
     public function values(array $input): self;
     public function for(string $name, array|string $rules, ?string $human = null): self;

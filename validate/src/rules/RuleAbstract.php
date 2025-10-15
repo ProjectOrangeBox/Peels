@@ -16,13 +16,13 @@ abstract class RuleAbstract
     protected $option;
 
     protected array $config = [];
-    protected ValidateInterface $parent;
+    protected ValidateInterface $validateService;
 
     protected string $defaultOptionSeparator = ',';
     // local instance of notation
     protected Notation $notation;
 
-    public function __construct(mixed &$input, string $options, array $config, ValidateInterface $parent)
+    public function __construct(mixed &$input, string $options, array $config, ValidateInterface $validateService)
     {
         // work on by reference
         $this->input = &$input;
@@ -30,7 +30,7 @@ abstract class RuleAbstract
         $this->option = &$this->options;
 
         $this->config = $config;
-        $this->parent = $parent;
+        $this->validateService = $validateService;
 
         $this->defaultOptionSeparator = $config['defaultOptionSeparator'] ?? $this->defaultOptionSeparator;
 
