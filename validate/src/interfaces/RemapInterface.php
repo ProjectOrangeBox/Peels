@@ -6,8 +6,7 @@ namespace peels\validate\interfaces;
 
 interface RemapInterface
 {
-    public function request(array|string $mapping): array;
-    public function query(array|string $mapping): array;
-
-    public function array(array $array, array|string $mapping): array;
+    public function __set(string $setName, array $value): void;
+    public function set(string $setName, array $value): self;
+    public function __call($setName, $arguments): mixed;
 }

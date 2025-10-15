@@ -19,25 +19,31 @@ class Remap extends Singleton implements RemapInterface
     protected string $devNullKey = '#';
     protected string $delimiter = '|';
 
-    protected InputInterface $inputService;
+    protected array $dataSets = [];
 
     protected function __construct(InputInterface $input)
     {
-        $this->inputService = $input;
+        $this->request = $input->request();
+        $this->query = $input->query();
     }
 
-    /**
-     * remap input/request - array keys
-     */
-    public function request(array|string $mapping): array
+    public function __set(string $setName, array $value): void
     {
-        return $this->array($this->inputService->request(), $mapping);
+        $this->set($setName, $value);
     }
 
-    public function query(array|string $mapping): array
+    public function set(string $setName, array $value): self
     {
-        return $this->array($this->inputService->query(), $mapping);
+        $this->dataSets[$setName] = $value;
+
+        return $this;
     }
+
+    public function __call($setName, $arguments): mixed
+    {
+        return $this->array($this->dataSets[$setName] ?? [], $arguments[0] ?? '');
+    }
+
 
     /**
      * remap
@@ -63,7 +69,7 @@ class Remap extends Singleton implements RemapInterface
      *
      *
      */
-    public function array(array $array, array|string $mapping): array
+    protected function array(array $array, array|string $mapping): array
     {
         if (is_array($mapping)) {
             $mapping = implode($this->delimiter, $mapping);
@@ -103,19 +109,19 @@ class Remap extends Singleton implements RemapInterface
 
             // now let's handle operators
             switch ($matches['operator']) {
-                    // move seg 1 to seg 2
+                // move seg 1 to seg 2
                 case '>':
                     $array[$segment2] = $segment1Value;
 
                     unset($array[$segment1]);
                     break;
-                    // move seg 2 to seg 1
+                // move seg 2 to seg 1
                 case '<':
                     $array[$segment1] = $segment2Value;
 
                     unset($array[$segment2]);
                     break;
-                    // copy seg 1 to seg 2
+                // copy seg 1 to seg 2
                 case '=':
                     $array[$segment1] = $segment2Value;
                     break;

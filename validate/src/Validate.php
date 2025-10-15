@@ -193,22 +193,27 @@ class Validate extends Factory implements ValidateInterface
         return $this->values;
     }
 
-    public function for(string|array $name, ?string $rules = null, ?string $human = null): self
+    public function for(string $name, array|string $rules, ?string $human = null): self
     {
-        if (is_array($name)) {
-            foreach ($name as $n => $rh) {
-                if (is_array($rh)) {
-                    $rules = $rh[0];
-                    $human = $rh[1] ?? $this->makeHumanLookNice(null, $n);
-                } else {
-                    $rules = $rh;
-                    $human = $this->makeHumanLookNice(null, $n);
-                }
+        $rules = is_array($rules) ? $rules : explode($this->ruleDelimiter, $rules);
 
-                $this->ruleSet[$n] = [explode($this->ruleDelimiter, $rules), $human];
+        $this->ruleSet[$name] = [$rules, $this->makeHumanLookNice($human, $name)];
+
+        return $this;
+    }
+
+    public function forEach(array $each): self
+    {
+        foreach ($each as $name => $ruleHuman) {
+            if (is_array($ruleHuman)) {
+                $rules = $ruleHuman[0];
+                $human = $ruleHuman[1] ?? null;
+            } else {
+                $rules = $ruleHuman;
+                $human = null;
             }
-        } else {
-            $this->ruleSet[$name] = [explode($this->ruleDelimiter, $rules), $this->makeHumanLookNice($human, $name)];
+
+            $this->for($name, $rules, $human);
         }
 
         return $this;

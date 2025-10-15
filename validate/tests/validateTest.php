@@ -54,7 +54,7 @@ final class validateTest extends \unitTestHelper
             'name' => 'Jane',
             'age' => 27,
             'food' => 'pizza',
-        ], $this->validate->values($values)->for($rules)->run());
+        ], $this->validate->values($values)->forEach($rules)->run());
     }
 
     public function testValidateSetDotNotation(): void
@@ -84,7 +84,7 @@ final class validateTest extends \unitTestHelper
             ],
             'age' => 27,
             'food' => 'pizza',
-        ], $this->validate->values($values)->for($rules)->run());
+        ], $this->validate->values($values)->forEach($rules)->run());
     }
 
     public function testValidateSetError(): void
@@ -101,7 +101,7 @@ final class validateTest extends \unitTestHelper
             'food' => 'isString|isOneOf[pizza,burger,hot dog,ice cream]',
         ];
 
-        $this->validate->throwExceptionOnFailure(false)->values($values)->for($rules)->run();
+        $this->validate->throwExceptionOnFailure(false)->values($values)->forEach($rules)->run();
 
         $this->assertTrue($this->validate->hasErrors());
         $this->assertEquals(['age is not greater than 18.', 'food is not one of pizza, burger, hot dog, ice cream.'], $this->validate->errors());

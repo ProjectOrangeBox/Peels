@@ -11,8 +11,8 @@ namespace peels\validate\interfaces;
  * ];
  * $validData = $validate
  *  ->values($data)
- *  ->for('name',['isString|notEmpty','Name'])
- *  ->for('age',['isInt|between[18,110]|notEmpty','Age'])
+ *  ->for('name','isString|notEmpty','Name')
+ *  ->for('age','isInt|between[18,110]|notEmpty','Age')
  *  ->run();
  * 
  * $validData = $validate
@@ -37,7 +37,8 @@ interface ValidateInterface
     public function getValues(): array;
 
     public function values(array $input): self;
-    public function for(string $key, string $rule, string $human): self;
+    public function for(string $name, array|string $rules, ?string $human = null): self;
+    public function forEach(array $each): self;
     public function run(): mixed;
 
     public function stopProcessing(): self;

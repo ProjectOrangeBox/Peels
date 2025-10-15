@@ -14,7 +14,7 @@ final class remapTest extends \unitTestHelper
         $this->remap = Remap::getInstance(Input::getInstance([]));
     }
 
-    public function testArray(): void
+    public function testArray1(): void
     {
         $input = [
             'name' => 'Johnny Appleseed',
@@ -27,14 +27,25 @@ final class remapTest extends \unitTestHelper
             'full' => 'Johnny Appleseed 34',
         ];
 
-        $this->assertEquals($equals, $this->remap->array($input, 'name>fullname|name>#|@trim(age)>age|@concat(fullname," ",age)>full'));
+        $this->assertEquals($equals, $this->remap->set('array', $input)->array('name>fullname|name>#|@trim(age)>age|@concat(fullname," ",age)>full'));
+    }
+
+    public function testArray2(): void
+    {
+        $input = [
+            'name' => 'Johnny Appleseed',
+            'age' => ' 34 ',
+        ];
 
         $equals = [
             'age' => '34',
         ];
 
-        $this->assertEquals($equals, $this->remap->array($input, 'name>#|@trim(age)>age'));
+        $this->assertEquals($equals, $this->remap->set('array', $input)->array('name>#|@trim(age)>age'));
+    }
 
+    public function testArray3(): void
+    {
         $input = [
             'name' => 'Johnny Appleseed',
             'age' => ' 34 ',
@@ -47,6 +58,6 @@ final class remapTest extends \unitTestHelper
             'more' => '(Johnny Appleseed,34)',
         ];
 
-        $this->assertEquals($equals, $this->remap->array($input, 'name>fullname|name>#|@trim(age)>age|@concat(fullname,",",age)>full|@concat("(",fullname,",",age,")")>more'));
+        $this->assertEquals($equals, $this->remap->set('array', $input)->array('name>fullname|name>#|@trim(age)>age|@concat(fullname,",",age)>full|@concat("(",fullname,",",age,")")>more'));
     }
 }
