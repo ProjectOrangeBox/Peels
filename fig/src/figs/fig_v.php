@@ -3,7 +3,7 @@
 /**
  * shorthand version of value
  */
-function fig_v(string $name, mixed $default = ''): mixed
+function fig_v(string $variableName, mixed $default = '', bool $escape = false): mixed
 {
-    return fig::value($name, $default);
+    return fig::value($variableName, $default, $escape);
 }

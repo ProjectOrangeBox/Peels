@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+// global namespace
+
+use Exception;
 use orange\framework\interfaces\DataInterface;
 
 // namespace global
@@ -36,8 +39,10 @@ class fig
     {
         logMsg('INFO', __METHOD__);
 
+        require_once __DIR__ . '/FigException.php';
+
         // publicly accessable view data object
-        self::$data = $data;
+        static::$data = $data;
 
         // add our local fig path
         fig::addPath(__DIR__ . '/figs');
@@ -56,23 +61,23 @@ class fig
 
         if ($first) {
             // add to beginning of search array
-            array_unshift(self::$pluginPaths, $path);
+            array_unshift(static::$pluginPaths, $path);
         } else {
             // append to the end of search array
-            array_push(self::$pluginPaths, $path);
+            array_push(static::$pluginPaths, $path);
         }
     }
 
     public static function addPaths(array $paths, bool $first = false): void
     {
         foreach ($paths as $path) {
-            self::addPath($path, $first);
+            static::addPath($path, $first);
         }
     }
 
     public static function setPlugins(array $absPaths): void
     {
-        self::$loadedPlugins = $absPaths;
+        static::$loadedPlugins = $absPaths;
     }
 
     public static function __callStatic($name, $arguments)
@@ -82,7 +87,7 @@ class fig
         $functionName = 'fig_' . $name;
 
         // throws exception if not found
-        $fullpath = self::findPlugIn($functionName);
+        $fullpath = static::findPlugIn($functionName);
 
         include_once $fullpath;
 
@@ -98,23 +103,23 @@ class fig
     {
         $name = strtolower($name);
 
-        if (!isset(self::$loadedPlugins[$name])) {
-            foreach (self::$pluginPaths as $path) {
+        if (!isset(static::$loadedPlugins[$name])) {
+            foreach (static::$pluginPaths as $path) {
                 $fullpath = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name . '.php';
 
                 if (file_exists($fullpath)) {
-                    self::$loadedPlugins[$name] = $fullpath;
+                    static::$loadedPlugins[$name] = $fullpath;
 
                     break;
                 }
             }
 
             // was it loaded?
-            if (!isset(self::$loadedPlugins[$name])) {
-                throw new Exception('Could not locate fig plugin "' . $name . '".');
+            if (!isset(static::$loadedPlugins[$name])) {
+                throw new FigException('Could not locate fig plugin "' . $name . '".');
             }
         }
 
-        return self::$loadedPlugins[$name];
+        return static::$loadedPlugins[$name];
     }
 }

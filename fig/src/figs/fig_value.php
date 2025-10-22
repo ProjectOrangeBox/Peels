@@ -6,9 +6,9 @@
  * since data is already "extracted" into the view anyway as proper local varaiables
  * this is really just a wrapper for that.
  */
-function fig_value(string $name, mixed $default = ''): mixed
+function fig_value(string $variableName, mixed $default = '', bool $escape = false): mixed
 {
-    logMsg('INFO', __METHOD__ . ' ' . $name);
+    $variableValue = fig::get($variableName, $default);
 
-    return fig::$data[$name] ?? $default;
+    return $escape ? fig::escape($variableValue ?? '') : $variableValue;
 }

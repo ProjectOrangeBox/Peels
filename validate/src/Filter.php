@@ -20,12 +20,13 @@ class Filter extends Singleton implements FilterInterface
 
     protected array $dataSets = [];
 
-    protected function __construct(ValidateInterface $validate, InputInterface $input)
+    protected function __construct(array $config, ValidateInterface $validate)
     {
         $this->validateService = $validate;
 
-        $this->request = $input->request();
-        $this->query = $input->query();
+        foreach ($config as $key => $array) {
+            $this->$key = $array;
+        }
     }
 
     /**
@@ -37,12 +38,12 @@ class Filter extends Singleton implements FilterInterface
      * @param array $value
      * @return void
      */
-    public function __set(string $setName, array $value): void
+    public function __set(string $setName, mixed $value): void
     {
         $this->set($setName, $value);
     }
 
-    public function set(string $setName, array $value): self
+    public function set(string $setName, mixed $value): self
     {
         $this->dataSets[$setName] = $value;
 
@@ -63,7 +64,19 @@ class Filter extends Singleton implements FilterInterface
         $rules = $arguments[1] ?? '';
         $default = $arguments[2] ?? null;
 
-        return isset($this->dataSets[$setName], $this->dataSets[$setName][$key]) ? $this->value($this->dataSets[$setName][$key], $rules) : $default;
+        if (isset($this->dataSets[$setName])) {
+            if (is_array($this->dataSets[$setName])) {
+                $value = $this->dataSets[$setName][$key];
+            } else {
+                $value = $this->dataSets[$setName];
+            }
+             
+            $return = $this->value($value, $rules);
+        } else {
+            $return = $default;
+        }
+
+        return $return;
     }
 
     /**

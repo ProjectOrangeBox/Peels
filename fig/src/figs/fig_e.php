@@ -3,7 +3,7 @@
 /**
  * shorter syntax for escaping html
  */
-function fig_e(string $name): string
+function fig_e(string $html): string
 {
-    return fig::escape($name, false);
+    return fig::escape($html);
 }

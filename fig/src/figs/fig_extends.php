@@ -11,9 +11,9 @@
  */
 function fig_extends(string $view): void
 {
-    $extending = fig::value('_fig##extends_', null);
+    $extending = fig::value('_fig##extends_');
 
-    if ($extending !== null) {
+    if (!empty($extending)) {
         throw new Exception('Cannot extend a base template because you are already extending "' . $extending . '".');
     }
 

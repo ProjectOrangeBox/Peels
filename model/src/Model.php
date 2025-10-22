@@ -11,9 +11,6 @@ abstract class Model
 {
     private static array $instances = [];
 
-    protected PDO $pdo;
-    protected array $config = [];
-
     // extended by child models
     protected array $rules = [];
     /* rules example:
@@ -47,18 +44,12 @@ abstract class Model
 
     protected Sql $sql;
     protected Crud $crud;
-    protected ValidateInterface $validateService;
 
-    protected function __construct(?array $config, PDO $pdo, ValidateInterface $validateService)
+    protected function __construct(protected array $config, protected PDO $pdo, protected ValidateInterface $validate)
     {
-        $this->config = $config ?? [];
-
         if (!isset($this->tablename)) {
             $this->tablename = $this->generateTablename();
         }
-
-        $this->pdo = $pdo;
-        $this->validateService = $validateService;
 
         // setup sql config
         $this->config = [
@@ -71,7 +62,7 @@ abstract class Model
         ];
 
         // validateService should throw exceptions for all failed rules so we can catch them
-        $this->validateService->throwExceptionOnFailure(true);
+        $this->validate->throwExceptionOnFailure(true);
 
         // setup our own personal versions
         $this->sql = new Sql($this->config, $pdo);
@@ -105,9 +96,6 @@ abstract class Model
 
     public function validateFields(string $set, array $fields): bool|array
     {
-        // now let's validation the input against the models column rules
-        $this->validateService->reset();
-
         // we only need these rules
         $rules = $this->getRules($set);
 
@@ -116,10 +104,10 @@ abstract class Model
 
         // validate our record and get out our values
         // above we request that an exception is thrown containing all failed rules
-        $fields = $this->validateService->input($fields, $rules)->values();
+        $fields = $this->validate->values($fields)->forEach($rules)->run();
 
-        // if any rules failed technically we shouldn't get here
-        return $this->validateService->hasNoErrors() ? $fields : false;
+        // if any rules failed technically we shouldn't get here because an exception was thrown
+        return $this->validate->hasNoErrors() ? $fields : false;
     }
 
     public function generateTablename(): string
