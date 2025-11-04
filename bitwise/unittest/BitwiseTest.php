@@ -1,6 +1,6 @@
 <?php
 
-use peels\console\BitWise;
+use peels\bitwise\BitWise;
 
 final class BitwiseTest extends unitTestHelper
 {

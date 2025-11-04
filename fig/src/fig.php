@@ -10,16 +10,18 @@ use orange\framework\interfaces\DataInterface;
 // namespace global
 
 /**
- *
- * These are a few different view "template" functions
- *
+ * Collection of helpers that load and execute view plugin templates.
  */
 class fig
 {
-    // allow the fig methods access to this
-    // this should have all of the view accessable values
+    /**
+     * Shared data object that exposes values to fig plugin templates.
+     */
     public static DataInterface $data;
 
+    /**
+     * Priority levels available to fig plugins when ordering execution.
+     */
     public const PRIORITY_LOWEST = 10;
     public const PRIORITY_LOW = 20;
     public const PRIORITY_NORMAL = 50;
@@ -32,16 +34,34 @@ class fig
     public const PREPEND = -1;
     public const APPEND = 1;
 
+    /**
+     * Absolute directory paths searched for fig plugin files.
+     *
+     * @var array<int, string>
+     */
     protected static $pluginPaths = [];
+    /**
+     * Cached map of plugin names to resolved absolute file paths.
+     *
+     * @var array<string, string>
+     */
     protected static $loadedPlugins = [];
 
+    /**
+     * Configure fig with directories and shared view data.
+     *
+     * @param array<string, mixed> $configFig   Application fig configuration.
+     * @param DataInterface        $data        Data provider exposed to plugins.
+     *
+     * @return void
+     */
     public static function configure(array $configFig, DataInterface $data)
     {
         logMsg('INFO', __METHOD__);
 
         require_once __DIR__ . '/FigException.php';
 
-        // publicly accessable view data object
+        // share the data interface so plugins can access view state
         static::$data = $data;
 
         // add our local fig path
@@ -53,6 +73,14 @@ class fig
         }
     }
 
+    /**
+     * Register a single plugin search path.
+     *
+     * @param string $path  Absolute directory containing plugin files.
+     * @param bool   $first When true, prioritise this path ahead of others.
+     *
+     * @return void
+     */
     public static function addPath(string $path, bool $first = false): void
     {
         logMsg('INFO', __METHOD__);
@@ -68,6 +96,14 @@ class fig
         }
     }
 
+    /**
+     * Register multiple plugin search paths.
+     *
+     * @param array<int, string> $paths List of absolute directories.
+     * @param bool               $first Prepend paths when true, append otherwise.
+     *
+     * @return void
+     */
     public static function addPaths(array $paths, bool $first = false): void
     {
         foreach ($paths as $path) {
@@ -75,11 +111,28 @@ class fig
         }
     }
 
+    /**
+     * Set the resolved plugin map, primarily used by tests or bootstrap.
+     *
+     * @param array<string, string> $absPaths Map of plugin names to absolute paths.
+     *
+     * @return void
+     */
     public static function setPlugins(array $absPaths): void
     {
         static::$loadedPlugins = $absPaths;
     }
 
+    /**
+     * Allow dynamic access to fig plugins via static method calls.
+     *
+     * @param string       $name      Plugin name without `fig_` prefix.
+     * @param array<mixed> $arguments Arguments forwarded to the plugin function.
+     *
+     * @throws FigException When the plugin cannot be resolved.
+     *
+     * @return mixed
+     */
     public static function __callStatic($name, $arguments)
     {
         logMsg('INFO', __METHOD__ . ' ' . $name);
@@ -95,9 +148,13 @@ class fig
     }
 
     /**
-     * find plugin and return abs path
+     * Resolve a fig plugin to an absolute path, loading it if necessary.
      *
-     * throws exception if plugin not found
+     * @param string $name Plugin name including the `fig_` prefix.
+     *
+     * @throws FigException When the plugin file cannot be found.
+     *
+     * @return string
      */
     protected static function findPlugIn(string $name): string
     {
