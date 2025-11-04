@@ -4,127 +4,127 @@ declare(strict_types=1);
 
 namespace peels\console;
 
+use peels\console\exceptions\BitNotFound;
+
 class BitWise
 {
-    protected int $level = 0;
-    protected static $flags = [];
+    protected int $mask = 0;
+    protected array $bits = [];
+    protected int $nextBit = 1;
+    protected int $maximumBits = 32;
 
-    public function __construct(?array $flagValues = null)
+    public function __construct(array $bitValues = [])
     {
-        if ($flagValues) {
-            $this->setFlagValues($flagValues);
-        }
-    }
+        $this->addBitValue('ALWAYS', 0);
+        $this->addBitValue('NONE', 0);
 
-    /**
-     * grab values statically
-     *
-     * BitWise::ERROR();
-     *
-     * @param string $name
-     * @param array $arguments (unused)
-     * @return mixed
-     */
-    public static function __callStatic(string $name, array $arguments): mixed
-    {
-        return static::$flags[strtoupper($name)] ?? 0;
-    }
-
-    /**
-     *
-     * @param string $name
-     * @return int
-     */
-    public function getFlag(string $name): int
-    {
-        return static::$flags[strtoupper($name)] ?? 0;
-    }
-
-    /**
-     *
-     * @param string $name
-     * @param int $int
-     * @return void
-     */
-    public function setFlagValue(string $name, int $int): void
-    {
-        static::$flags[strtoupper($name)] = $int;
-    }
-
-    /**
-     *
-     * @param array $nameValue
-     * @return void
-     */
-    public function setFlagValues(array $nameValue): void
-    {
-        foreach ($nameValue as $name => $value) {
-            $this->setFlagValue($name, $value);
-        }
-    }
-
-    /**
-     *
-     * @param array $names
-     * @return void
-     */
-    public function autoSetFlagValues(array $names): void
-    {
-        $value = 1;
-
-        foreach ($names as $name) {
-            $this->setFlagValue($name, $value);
-            $value = $value + $value;
-        }
-    }
-
-    /**
-     * Set the current bitwise (binary) value
-     *
-     * @param int $level
-     * @return void
-     */
-    public function set(int $level): void
-    {
-        $this->level = $level;
-    }
-
-    /**
-     * Get the current Bitwise (binary) value
-     *
-     * @return int
-     */
-    public function get(): int
-    {
-        return $this->level;
-    }
-
-    /**
-     * Is a specific bitwise "bit" on (true) or off (false)
-     *
-     * @param int $flag
-     * @return bool
-     */
-    public function isFlagSet(int $flag): bool
-    {
-        return ($this->level & $flag) == $flag;
-    }
-
-    /**
-     * Set a specific bitwise "bit" on (true) or off (false)
-     *
-     * @param int $flag
-     * @param bool $value
-     * @return int
-     */
-    public function setFlag(int $flag, bool $value): int
-    {
-        if ($value) {
-            $this->level |= $flag;
-        } else {
-            $this->level &= ~$flag;
+        foreach ($bitValues as $bit) {
+            $this->addBit($bit);
         }
 
-        return $this->level;
+        $this->addBitValue('EVERYTHING', pow(2, $this->maximumBits) - 1);
+    }
+
+    public function __get(string $bit): bool
+    {
+        return $this->isSet($bit);
+    }
+
+    public function turnOn(): self
+    {
+        $args = func_get_args();
+
+        if (is_array($args[0])) {
+            $args = $args[0];
+        }
+
+        foreach ($args as $bit) {
+            $this->mask |= $this->getInt($bit);
+        }
+
+        return $this;
+    }
+
+    public function turnOff(): self
+    {
+        $args = func_get_args();
+
+        if (is_array($args[0])) {
+            $args = $args[0];
+        }
+
+        foreach ($args as $bit) {
+            $this->mask &= $this->getInt($bit);
+        }
+
+        return $this;
+    }
+
+    public function reset(): self
+    {
+        $this->mask = 0;
+
+        return $this;
+    }
+
+    public function hasBit(string $bit, bool $throwException = false, bool $returnInteger = false): bool|int
+    {
+        $normalizedBit = strtoupper($bit);
+
+        $has = isset($this->bits[$normalizedBit]);
+
+        if (!$has && $throwException) {
+            throw new BitNotFound($normalizedBit);
+        }
+
+        return ($returnInteger) ? $this->bits[$normalizedBit] ?? 0 : $has;
+    }
+
+    public function isSet(string $bit): bool
+    {
+        $bitInteger = $this->hasBit($bit, true, true);
+
+        return ($this->mask & $bitInteger) == $bitInteger;
+    }
+
+    public function addBit(): self
+    {
+        $args = func_get_args();
+
+        return $this->addBits(...$args);
+    }
+
+    public function addBits(): self
+    {
+        $args = func_get_args();
+
+        if (is_array($args[0])) {
+            $args = $args[0];
+        }
+
+        foreach ($args as $bit) {
+            if (!$this->hasBit($bit)) {
+                $this->addBitValue($bit, $this->nextBit);
+
+                $this->nextBit = $this->nextBit + $this->nextBit;
+            }
+        }
+
+        return $this;
+    }
+
+    public function __debugInfo()
+    {
+        return ['level' => $this->mask, 'bits' => $this->bits];
+    }
+
+    protected function getInt(string $bit): int
+    {
+        return $this->hasBit($bit, true, true);
+    }
+
+    protected function addBitValue(string $bit, int $value): void
+    {
+        $this->bits[strtoupper($bit)] = $value;
     }
 }

@@ -3,4 +3,4 @@
 define('__ROOT__', realpath(__DIR__ . '/../../../'));
 define('__WWW__', realpath(__DIR__ . '/../../../htdocs'));
 
-require __DIR__ . '/../unitTests/support/unitTestHelper.php';
+require __DIR__ . '/../unittest/support/unitTestHelper.php';
