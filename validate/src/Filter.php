@@ -6,7 +6,6 @@ namespace peels\validate;
 
 use orange\framework\base\Singleton;
 use peels\validate\interfaces\FilterInterface;
-use orange\framework\interfaces\InputInterface;
 use peels\validate\interfaces\ValidateInterface;
 
 /**
@@ -18,15 +17,13 @@ class Filter extends Singleton implements FilterInterface
 {
     protected ValidateInterface $validateService;
 
-    protected array $dataSets = [];
+    protected array $data = [];
 
     protected function __construct(array $config, ValidateInterface $validate)
     {
         $this->validateService = $validate;
 
-        foreach ($config as $key => $array) {
-            $this->$key = $array;
-        }
+        $this->data = $config;
     }
 
     /**
@@ -45,7 +42,7 @@ class Filter extends Singleton implements FilterInterface
 
     public function set(string $setName, mixed $value): self
     {
-        $this->dataSets[$setName] = $value;
+        $this->data[$setName] = $value;
 
         return $this;
     }
@@ -64,13 +61,13 @@ class Filter extends Singleton implements FilterInterface
         $rules = $arguments[1] ?? '';
         $default = $arguments[2] ?? null;
 
-        if (isset($this->dataSets[$setName])) {
-            if (is_array($this->dataSets[$setName])) {
-                $value = $this->dataSets[$setName][$key];
+        if (isset($this->data[$setName])) {
+            if (is_array($this->data[$setName])) {
+                $value = $this->data[$setName][$key];
             } else {
-                $value = $this->dataSets[$setName];
+                $value = $this->data[$setName];
             }
-             
+
             $return = $this->value($value, $rules);
         } else {
             $return = $default;
