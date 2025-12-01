@@ -173,4 +173,11 @@ class Filters extends RuleAbstract
 
         $this->input = filter_var($this->input, FILTER_SANITIZE_EMAIL);
     }
+
+    public function convertLF(): void
+    {
+        $this->toString();
+
+        $this->input = str_replace(["\r\n", "\r"], "\n", $this->input);
+    }
 }

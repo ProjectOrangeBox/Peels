@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 // global namespace
 
-use Exception;
 use orange\framework\interfaces\DataInterface;
 
 // namespace global

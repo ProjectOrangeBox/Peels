@@ -42,6 +42,7 @@ return [
         'toUpper' => \peels\validate\rules\Filters::class . '::upper',
         'toVisible' => \peels\validate\rules\Filters::class . '::visible',
         'toEmail' => \peels\validate\rules\Filters::class . '::email',
+        'convertLF' => \peels\validate\rules\Filters::class . '::convertLF',
 
         // --Validate
         'allowEmpty' => \peels\validate\rules\Rules::class . '::allowEmpty',

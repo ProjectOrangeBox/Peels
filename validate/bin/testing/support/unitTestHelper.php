@@ -31,7 +31,7 @@ class unitTestHelper extends TestCase
         $closure($value);
     }
 
-    protected function callMethod(string $method, array $args = null)
+    protected function callMethod(string $method, ?array $args = null)
     {
         $reflectionMethod = new ReflectionMethod($this->instance, $method);
 
